@@ -195,7 +195,7 @@ This project is [MIT](LICENSE) licensed.
 ## 👤 Author
 
 **Your Name**
-- GitHub: [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
+- GitHub: [@francescoa27122](https://github.com/francescoa27122)
 
 ## 🙏 Acknowledgments
 
