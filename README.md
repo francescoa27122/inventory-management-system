@@ -1,261 +1,210 @@
-# Family Business Inventory Management System
+# Inventory Management System
 
-A complete web-based inventory management system built with React and Node.js.
+A full-stack inventory and job management system built for automotive shops, featuring separate tracking for Tire Shop and Body Shop sections.
 
-## Features
+## 🚀 Features
 
-- ✅ User Authentication (Login/Logout)
-- ✅ Dashboard with statistics and low stock alerts
-- ✅ Inventory Management (Add, Edit, Delete items)
-- ✅ Excel Import functionality
-- ✅ Price Comparison tool
-- ✅ Jobs Management (Create and track projects)
-- ✅ Responsive design for mobile and desktop
+### Inventory Management
+- **Dual Section Tracking** - Separate inventory for Tire Shop and Body Shop
+- **Real-time Search** - Quick filtering of inventory items
+- **CSV Import** - Bulk import inventory data
+- **Price Tracking** - Automatic pricing for all parts
+- **Low Stock Alerts** - Dashboard alerts for items below threshold
+- **Category Management** - Organized part categorization
 
-## Tech Stack
-
-**Frontend:**
-- React.js 18
-- React Router for navigation
-- Axios for API calls
-- Lucide React for icons
-
-**Backend:**
-- Node.js with Express
-- SQLite database (better-sqlite3)
-- JWT authentication
-- Bcrypt for password hashing
-- Multer for file uploads
-- SheetJS for Excel processing
-
-## Installation & Setup
-
-### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
-
-### Step 1: Install Backend Dependencies
-
-```bash
-cd backend
-npm install
-```
-
-### Step 2: Initialize Database
-
-```bash
-npm run init-db
-```
-
-This will create the database with sample data and a default admin user:
-- Username: `admin`
-- Password: `admin123`
-
-### Step 3: Start Backend Server
-
-```bash
-npm start
-```
-
-The backend will run on http://localhost:5000
-
-### Step 4: Install Frontend Dependencies
-
-Open a new terminal window:
-
-```bash
-cd frontend
-npm install
-```
-
-### Step 5: Start Frontend Development Server
-
-```bash
-npm start
-```
-
-The frontend will run on http://localhost:3000 and automatically open in your browser.
-
-## Default Login Credentials
-
-- **Username:** admin
-- **Password:** admin123
-
-## Usage
+### Jobs Management
+- **Job Creation** - Track customer jobs with details
+- **Part Assignment** - Link inventory items to specific jobs
+- **Part Status Tracking** - Monitor if parts are Ordered, Ordering, or Received
+- **Cost Calculation** - Automatic job cost totaling
+- **Job Status** - Active, Completed, and Cancelled states
+- **Document Ready** - Frontend prepared for file uploads
 
 ### Dashboard
-- View inventory statistics
-- See low stock alerts
-- Quick access to common actions
+- **Inventory Overview** - Total items and value by section
+- **Low Stock Monitoring** - Color-coded alerts (Critical, Warning, Low)
+- **Active Jobs Count** - Quick view of current workload
+- **Section Values** - Separate Tire Shop and Body Shop totals
 
-### Inventory
-- Add new items manually
-- Import items from Excel/CSV files
-- Edit and delete existing items
-- Search and filter inventory
+### User Interface
+- **Dark Mode** - Eye-friendly dark theme with toggle
+- **Responsive Design** - Works on desktop, tablet, and mobile
+- **Modern UI** - Clean, professional interface
+- **Status Badges** - Color-coded visual indicators
 
-### Price Comparison
-- Select multiple items to compare
-- View price statistics (lowest, highest, average)
-- See detailed comparisons side-by-side
+## 🛠️ Tech Stack
 
-### Jobs
-- Create new jobs for projects
-- Track job status (Active, Completed, Cancelled)
-- View job details and associated parts
+### Frontend
+- React 18
+- React Router v6
+- Axios for API calls
+- Lucide React icons
+- CSS3 with CSS variables
 
-## Excel Import Format
+### Backend
+- Node.js
+- Express.js
+- Better-sqlite3 database
+- JWT authentication
+- RESTful API
 
-Your Excel file should include these columns:
-- **Item Name** (required)
-- **Quantity** (required)
-- **Unit Price** (required)
-- Category (optional)
-- Supplier (optional)
-- Location (optional)
-- Description (optional)
-- SKU (optional)
+## 📋 Prerequisites
 
-## Deployment
+- Node.js (v14 or higher)
+- npm or yarn
 
-### Building for Production
+## 🚀 Installation
 
-#### Backend:
+### 1. Clone the repository
+```bash
+git clone https://github.com/YOUR_USERNAME/inventory-management-system.git
+cd inventory-management-system
+```
+
+### 2. Setup Backend
 ```bash
 cd backend
-# Set NODE_ENV to production in .env file
-# Deploy to your hosting provider
+npm install
+npm run init-db
+npm start
 ```
+Backend will run on `http://localhost:3001`
 
-#### Frontend:
+### 3. Setup Frontend
 ```bash
 cd frontend
-npm run build
+npm install
+npm start
 ```
+Frontend will run on `http://localhost:3000`
 
-The build folder will contain the optimized production files.
+## 🔐 Default Login
 
-### Recommended Hosting Options
+**Username:** `admin`  
+**Password:** `admin123`
 
-**For Complete Solution:**
-1. **Heroku** - Easy deployment, includes database
-2. **DigitalOcean App Platform** - $5-10/month
-3. **Railway** - Modern deployment platform
-4. **Render** - Free tier available
+⚠️ **Important:** Change the default password in production!
 
-**For Domain:**
-1. **Namecheap** - $8-12/year
-2. **Google Domains** - $12/year
-3. **GoDaddy** - $10-15/year
-
-### Deployment Steps:
-
-1. **Choose a hosting provider** from the recommendations above
-2. **Register a domain name** (optional but recommended)
-3. **Deploy backend:**
-   - Upload backend code to hosting provider
-   - Set environment variables
-   - Run database initialization
-4. **Build and deploy frontend:**
-   - Run `npm run build` in frontend folder
-   - Upload build folder or configure hosting for React apps
-5. **Configure domain** to point to your hosted application
-
-### Environment Variables for Production
-
-Create a `.env` file in the backend folder:
-
-```
-NODE_ENV=production
-PORT=5000
-JWT_SECRET=your-very-long-random-secret-key-here-change-this
-```
-
-**IMPORTANT:** Change the JWT_SECRET to a long random string for security!
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 inventory-management-system/
 ├── backend/
 │   ├── src/
-│   │   ├── routes/          # API endpoints
-│   │   ├── models/          # Database models
-│   │   ├── middleware/      # Auth middleware
-│   │   ├── server.js        # Express server
-│   │   └── initDatabase.js  # Database setup
-│   ├── uploads/             # Uploaded Excel files
-│   ├── package.json
-│   └── .env
-└── frontend/
-    ├── src/
-    │   ├── components/      # React components
-    │   ├── pages/           # Page components
-    │   ├── services/        # API services
-    │   ├── App.js
-    │   └── index.js
-    ├── public/
-    └── package.json
+│   │   ├── routes/       # API routes
+│   │   ├── models/       # Database models
+│   │   ├── middleware/   # Auth middleware
+│   │   └── server.js     # Express server
+│   ├── scripts/          # Utility scripts
+│   └── database.sqlite   # SQLite database
+├── frontend/
+│   ├── src/
+│   │   ├── components/   # React components
+│   │   ├── pages/        # Page components
+│   │   ├── services/     # API services
+│   │   └── context/      # React context
+│   └── public/
+└── README.md
 ```
 
-## API Endpoints
+## 🎨 Features in Detail
+
+### Inventory Section Tabs
+- Switch between Tire Shop and Body Shop inventory
+- Independent tracking and management
+- Section-specific low stock alerts
+
+### Job Management
+- Create jobs with customer information
+- Assign parts with quantity tracking
+- Monitor part ordering status
+- View total job costs
+- Delete completed or cancelled jobs
+
+### Dashboard Analytics
+- Tire Shop inventory value
+- Body Shop inventory value
+- Low stock items table with status indicators
+- Active jobs counter
+
+### Dark Mode
+- Toggle between light and dark themes
+- Persistent preference storage
+- Smooth color transitions
+- Optimized for reduced eye strain
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create `.env` file in backend directory:
+```env
+NODE_ENV=development
+PORT=3001
+JWT_SECRET=your-secret-key-here
+```
+
+### Database
+
+The system uses SQLite for easy setup. Database schema includes:
+- Users
+- Inventory Items
+- Jobs
+- Job Items
+- Import Logs
+
+## 📊 API Endpoints
 
 ### Authentication
-- POST `/api/auth/login` - User login
-- POST `/api/auth/logout` - User logout
-- GET `/api/auth/me` - Get current user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
 
 ### Inventory
-- GET `/api/inventory` - Get all items
-- GET `/api/inventory/:id` - Get single item
-- POST `/api/inventory` - Create new item
-- PUT `/api/inventory/:id` - Update item
-- DELETE `/api/inventory/:id` - Delete item
-- POST `/api/inventory/import` - Import from Excel
-- POST `/api/inventory/compare` - Compare items
+- `GET /api/inventory` - Get all items
+- `GET /api/inventory/:id` - Get single item
+- `POST /api/inventory` - Create item
+- `PUT /api/inventory/:id` - Update item
+- `DELETE /api/inventory/:id` - Delete item
+- `POST /api/inventory/import` - CSV import
 
 ### Jobs
-- GET `/api/jobs` - Get all jobs
-- GET `/api/jobs/:id` - Get job details
-- POST `/api/jobs` - Create new job
-- PUT `/api/jobs/:id` - Update job
-- DELETE `/api/jobs/:id` - Delete job
-- POST `/api/jobs/:id/items` - Add items to job
+- `GET /api/jobs` - Get all jobs
+- `GET /api/jobs/:id` - Get job details
+- `POST /api/jobs` - Create job
+- `PUT /api/jobs/:id` - Update job
+- `DELETE /api/jobs/:id` - Delete job
+- `POST /api/jobs/:id/items` - Add parts to job
+- `DELETE /api/jobs/:jobId/items/:itemId` - Remove part from job
 
-## Troubleshooting
+## 🚧 Future Enhancements
 
-### Backend won't start
-- Make sure you ran `npm run init-db` first
-- Check that port 5000 is not in use
-- Verify all dependencies are installed
+- [ ] File upload for job documents/photos
+- [ ] PDF invoice generation
+- [ ] Email notifications
+- [ ] Advanced reporting
+- [ ] Multi-user roles and permissions
+- [ ] Backup and restore functionality
+- [ ] Mobile app
 
-### Frontend won't connect to backend
-- Ensure backend is running on port 5000
-- Check the proxy setting in frontend/package.json
-- Clear browser cache and reload
+## 🤝 Contributing
 
-### Excel import not working
-- Verify your Excel file has required columns
-- Check file format (.xlsx, .xls, or .csv)
-- Ensure file size is under 10MB
+Contributions, issues, and feature requests are welcome!
 
-## Support
+## 📝 License
 
-For issues or questions, check:
-1. Make sure all dependencies are installed
-2. Verify database was initialized properly
-3. Check console for error messages
-4. Ensure both frontend and backend are running
+This project is [MIT](LICENSE) licensed.
 
-## License
+## 👤 Author
 
-This project is for family business use.
+**Your Name**
+- GitHub: [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
 
-## Future Enhancements
+## 🙏 Acknowledgments
 
-- Barcode scanning
-- Email notifications for low stock
-- Advanced reporting
-- Mobile app
-- Multi-location support
-- Purchase order management
+- Built with modern web technologies
+- Designed for automotive shop management
+- Optimized for real-world use
+
+---
+
+Made with ❤️ for efficient inventory management

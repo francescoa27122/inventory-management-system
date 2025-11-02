@@ -8,6 +8,7 @@ const Inventory = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSection, setActiveSection] = useState('Main Shop');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -23,17 +24,21 @@ const Inventory = () => {
     location: '',
     sku: '',
     minimum_stock: '',
-    notes: ''
+    notes: '',
+    section: 'Main Shop'
   });
 
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [activeSection]);
 
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const response = await inventoryService.getAll({ limit: 1000 });
+      const response = await inventoryService.getAll({ 
+        limit: 1000,
+        section: activeSection
+      });
       setItems(response.data.data);
     } catch (error) {
       console.error('Error fetching items:', error);
@@ -58,7 +63,8 @@ const Inventory = () => {
         ...formData,
         quantity: parseInt(formData.quantity) || 0,
         unit_price: parseFloat(formData.unit_price) || 0,
-        minimum_stock: parseInt(formData.minimum_stock) || 0
+        minimum_stock: parseInt(formData.minimum_stock) || 0,
+        section: activeSection
       });
       alert('Item added successfully!');
       setShowAddModal(false);
@@ -116,7 +122,8 @@ const Inventory = () => {
       location: item.location || '',
       sku: item.sku || '',
       minimum_stock: item.minimum_stock || '',
-      notes: item.notes || ''
+      notes: item.notes || '',
+      section: item.section || 'Main Shop'
     });
     setShowEditModal(true);
   };
@@ -133,7 +140,8 @@ const Inventory = () => {
       location: '',
       sku: '',
       minimum_stock: '',
-      notes: ''
+      notes: '',
+      section: activeSection
     });
   };
 
@@ -175,7 +183,7 @@ const Inventory = () => {
       <Navigation />
       <div className="page-container">
         <div className="page-header">
-          <h2 className="page-title">All Inventory</h2>
+          <h2 className="page-title">Inventory Management</h2>
           <div className="header-actions">
             <button className="btn btn-success" onClick={() => setShowImportModal(true)}>
               <Upload size={18} />
@@ -186,6 +194,22 @@ const Inventory = () => {
               Add Item
             </button>
           </div>
+        </div>
+
+        {/* Section Tabs */}
+        <div className="section-tabs">
+          <button 
+            className={`tab ${activeSection === 'Main Shop' ? 'active' : ''}`}
+            onClick={() => setActiveSection('Main Shop')}
+          >
+            Main Shop Inventory
+          </button>
+          <button 
+            className={`tab ${activeSection === 'Tire Shop' ? 'active' : ''}`}
+            onClick={() => setActiveSection('Tire Shop')}
+          >
+            Tire Shop Inventory
+          </button>
         </div>
 
         <div className="search-box">
@@ -215,7 +239,7 @@ const Inventory = () => {
               {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="empty-table">
-                    {searchTerm ? 'No items found matching your search' : 'No inventory items yet'}
+                    {searchTerm ? 'No items found matching your search' : `No items in ${activeSection} yet`}
                   </td>
                 </tr>
               ) : (
@@ -255,12 +279,12 @@ const Inventory = () => {
           <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>Add New Item</h3>
+                <h3>Add New Item to {activeSection}</h3>
                 <button className="close-btn" onClick={() => setShowAddModal(false)}>
                   <X size={24} />
                 </button>
               </div>
-              <div className="modal-form" onSubmit={handleAddItem}>
+              <form className="modal-form" onSubmit={handleAddItem}>
                 <div className="form-row">
                   <div className="form-field">
                     <label>Item Name *</label>
@@ -338,11 +362,11 @@ const Inventory = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" onClick={handleAddItem}>
+                  <button type="submit" className="btn btn-primary">
                     Add Item
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}
@@ -357,7 +381,7 @@ const Inventory = () => {
                   <X size={24} />
                 </button>
               </div>
-              <div className="modal-form" onSubmit={handleEditItem}>
+              <form className="modal-form" onSubmit={handleEditItem}>
                 <div className="form-row">
                   <div className="form-field">
                     <label>Item Name *</label>
@@ -423,6 +447,17 @@ const Inventory = () => {
                   </div>
                 </div>
                 <div className="form-field">
+                  <label>Section</label>
+                  <select
+                    name="section"
+                    value={formData.section}
+                    onChange={handleInputChange}
+                  >
+                    <option value="Main Shop">Main Shop</option>
+                    <option value="Tire Shop">Tire Shop</option>
+                  </select>
+                </div>
+                <div className="form-field">
                   <label>Description</label>
                   <textarea
                     name="description"
@@ -435,11 +470,11 @@ const Inventory = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" onClick={handleEditItem}>
+                  <button type="submit" className="btn btn-primary">
                     Update Item
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}

@@ -32,7 +32,7 @@ const upload = multer({
 // Get all inventory items with filtering and pagination
 router.get('/', authenticateToken, (req, res) => {
   try {
-    const { search, category, page = 1, limit = 50 } = req.query;
+    const { search, category, section, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
 
     let query = 'SELECT * FROM inventory_items WHERE 1=1';
@@ -47,6 +47,11 @@ router.get('/', authenticateToken, (req, res) => {
     if (category) {
       query += ' AND category = ?';
       params.push(category);
+    }
+
+    if (section) {
+      query += ' AND section = ?';
+      params.push(section);
     }
 
     query += ' ORDER BY item_name ASC LIMIT ? OFFSET ?';
@@ -67,6 +72,11 @@ router.get('/', authenticateToken, (req, res) => {
     if (category) {
       countQuery += ' AND category = ?';
       countParams.push(category);
+    }
+
+    if (section) {
+      countQuery += ' AND section = ?';
+      countParams.push(section);
     }
 
     const totalCount = db.prepare(countQuery).get(...countParams).count;
@@ -126,7 +136,8 @@ router.post('/', authenticateToken, (req, res) => {
       location,
       sku,
       minimum_stock,
-      notes
+      notes,
+      section
     } = req.body;
 
     if (!item_name || quantity === undefined || unit_price === undefined) {
@@ -139,13 +150,13 @@ router.post('/', authenticateToken, (req, res) => {
     const insert = db.prepare(`
       INSERT INTO inventory_items (
         item_name, description, category, quantity, unit_price,
-        supplier, supplier_contact, location, sku, minimum_stock, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        supplier, supplier_contact, location, sku, minimum_stock, notes, section, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = insert.run(
       item_name, description, category, quantity, unit_price,
-      supplier, supplier_contact, location, sku, minimum_stock || 0, notes, req.user.id
+      supplier, supplier_contact, location, sku, minimum_stock || 0, notes, section || 'Main Shop', req.user.id
     );
 
     const newItem = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(result.lastInsertRowid);
@@ -184,7 +195,8 @@ router.put('/:id', authenticateToken, (req, res) => {
       location,
       sku,
       minimum_stock,
-      notes
+      notes,
+      section
     } = req.body;
 
     const update = db.prepare(`
@@ -200,13 +212,14 @@ router.put('/:id', authenticateToken, (req, res) => {
         sku = COALESCE(?, sku),
         minimum_stock = COALESCE(?, minimum_stock),
         notes = COALESCE(?, notes),
+        section = COALESCE(?, section),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
 
     const result = update.run(
       item_name, description, category, quantity, unit_price,
-      supplier, supplier_contact, location, sku, minimum_stock, notes, req.params.id
+      supplier, supplier_contact, location, sku, minimum_stock, notes, section, req.params.id
     );
 
     if (result.changes === 0) {

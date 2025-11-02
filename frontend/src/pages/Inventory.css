@@ -12,6 +12,41 @@
   gap: 12px;
 }
 
+/* Section Tabs */
+.section-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 2px 8px var(--shadow);
+  border: 1px solid var(--border-color);
+}
+
+.section-tabs .tab {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.section-tabs .tab:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.section-tabs .tab.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
 .btn {
   display: flex;
   align-items: center;
@@ -26,41 +61,43 @@
 }
 
 .btn-primary {
-  background: #667eea;
+  background: var(--accent-blue);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #5568d3;
+  opacity: 0.9;
 }
 
 .btn-success {
-  background: #10b981;
+  background: var(--accent-green);
   color: white;
 }
 
 .btn-success:hover {
-  background: #059669;
+  opacity: 0.9;
 }
 
 .btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background: #d1d5db;
+  background: var(--hover-bg);
 }
 
 .search-box {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--shadow);
   padding: 16px;
   margin-bottom: 24px;
   display: flex;
   align-items: center;
   gap: 12px;
+  border: 1px solid var(--border-color);
 }
 
 .search-box input {
@@ -68,13 +105,20 @@
   border: none;
   outline: none;
   font-size: 15px;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.search-box input::placeholder {
+  color: var(--text-tertiary);
 }
 
 .table-container {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--shadow);
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .inventory-table {
@@ -83,8 +127,8 @@
 }
 
 .inventory-table thead {
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
+  background: var(--bg-tertiary);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .inventory-table th {
@@ -92,24 +136,24 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .inventory-table td {
   padding: 16px;
-  border-bottom: 1px solid #f3f4f6;
-  color: #374151;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
 .inventory-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--hover-bg);
 }
 
 .item-name {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .actions-cell {
@@ -129,27 +173,29 @@
 }
 
 .icon-btn.edit {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(96, 165, 250, 0.2);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue);
 }
 
 .icon-btn.edit:hover {
-  background: #bfdbfe;
+  background: rgba(96, 165, 250, 0.3);
 }
 
 .icon-btn.delete {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
 }
 
 .icon-btn.delete:hover {
-  background: #fecaca;
+  background: rgba(248, 113, 113, 0.3);
 }
 
 .empty-table {
   text-align: center;
   padding: 40px !important;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .modal-overlay {
@@ -158,7 +204,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,12 +213,13 @@
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid var(--border-color);
 }
 
 .modal.small {
@@ -181,7 +228,7 @@
 
 .modal-header {
   padding: 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -190,21 +237,21 @@
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .close-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--text-secondary);
   padding: 4px;
   display: flex;
   align-items: center;
 }
 
 .close-btn:hover {
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .modal-form {
@@ -232,22 +279,31 @@
 .form-field label {
   font-weight: 600;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .form-field input,
-.form-field textarea {
+.form-field textarea,
+.form-field select {
   padding: 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: var(--text-tertiary);
 }
 
 .form-field input:focus,
-.form-field textarea:focus {
+.form-field textarea:focus,
+.form-field select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-blue);
 }
 
 .modal-actions {
@@ -259,17 +315,19 @@
 
 .help-text {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 8px;
 }
 
 .file-input {
   margin-top: 16px;
   padding: 10px;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--border-color);
   border-radius: 8px;
   width: 100%;
   cursor: pointer;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 @media (max-width: 768px) {

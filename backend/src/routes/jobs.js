@@ -25,6 +25,19 @@ router.get('/', authenticateToken, (req, res) => {
 
     const jobs = db.prepare(query).all(...params);
 
+    // Add total cost to each job
+    jobs.forEach(job => {
+      const items = db.prepare(`
+        SELECT quantity_used, unit_price_at_time
+        FROM job_items
+        WHERE job_id = ?
+      `).all(job.id);
+
+      job.total_cost = items.reduce((sum, item) => {
+        return sum + (item.quantity_used * item.unit_price_at_time);
+      }, 0);
+    });
+
     res.json({
       success: true,
       data: jobs
@@ -190,6 +203,10 @@ router.put('/:id', authenticateToken, (req, res) => {
 // Delete job
 router.delete('/:id', authenticateToken, (req, res) => {
   try {
+    // First delete all job items
+    db.prepare('DELETE FROM job_items WHERE job_id = ?').run(req.params.id);
+    
+    // Then delete the job
     const result = db.prepare('DELETE FROM jobs WHERE id = ?').run(req.params.id);
 
     if (result.changes === 0) {
@@ -212,7 +229,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
   }
 });
 
-// Add items to job
+// Add items to job with status tracking
 router.post('/:id/items', authenticateToken, (req, res) => {
   try {
     const { items } = req.body;
@@ -226,20 +243,21 @@ router.post('/:id/items', authenticateToken, (req, res) => {
 
     const insert = db.prepare(`
       INSERT INTO job_items (
-        job_id, inventory_item_id, quantity_used, unit_price_at_time, notes
-      ) VALUES (?, ?, ?, ?, ?)
+        job_id, inventory_item_id, quantity_used, unit_price_at_time, status, notes
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     const insertMany = db.transaction((items) => {
       for (const item of items) {
-        const inventoryItem = db.prepare('SELECT unit_price FROM inventory_items WHERE id = ?').get(item.inventory_item_id);
+        const inventoryItem = db.prepare('SELECT unit_price FROM inventory_items WHERE id = ?').get(item.item_id);
         
         if (inventoryItem) {
           insert.run(
             req.params.id,
-            item.inventory_item_id,
+            item.item_id,
             item.quantity_used,
             inventoryItem.unit_price,
+            item.status || 'ordered',
             item.notes || null
           );
         }
@@ -257,6 +275,46 @@ router.post('/:id/items', authenticateToken, (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error adding items to job'
+    });
+  }
+});
+
+// Update item status in job
+router.patch('/:jobId/items/:itemId/status', authenticateToken, (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+
+    const update = db.prepare(`
+      UPDATE job_items 
+      SET status = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND job_id = ?
+    `);
+
+    const result = update.run(status, req.params.itemId, req.params.jobId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found in job'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Item status updated successfully'
+    });
+  } catch (error) {
+    console.error('Update item status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating item status'
     });
   }
 });

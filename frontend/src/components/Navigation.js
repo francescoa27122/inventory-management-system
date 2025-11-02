@@ -1,13 +1,15 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Moon, Sun } from 'lucide-react';
 import { authService } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 import './Navigation.css';
 
 const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = authService.getCurrentUser();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
@@ -34,15 +36,19 @@ const Navigation = () => {
           <Link to="/inventory" className={isActive('/inventory')}>
             Inventory
           </Link>
-          <Link to="/compare" className={isActive('/compare')}>
-            Compare
-          </Link>
           <Link to="/jobs" className={isActive('/jobs')}>
             Jobs
           </Link>
         </div>
         
         <div className="nav-user">
+          <button 
+            onClick={toggleTheme} 
+            className="theme-toggle" 
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
           <div className="user-info">
             <User size={18} />
             <span>{user?.username || 'User'}</span>

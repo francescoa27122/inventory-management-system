@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Briefcase, DollarSign, Package, Plus, Upload, AlertTriangle } from 'lucide-react';
+import { Package, DollarSign, Wrench, AlertTriangle } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { inventoryService, jobsService } from '../services/api';
 import './Dashboard.css';
@@ -9,11 +8,13 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     totalItems: 0,
     totalValue: 0,
-    activeJobs: 0,
-    lowStockItems: []
+    tireShopValue: 0,
+    mainShopValue: 0,
+    lowStockCount: 0,
+    activeJobs: 0
   });
+  const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
@@ -21,27 +22,44 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [inventoryResponse, jobsResponse] = await Promise.all([
+      const [itemsResponse, jobsResponse] = await Promise.all([
         inventoryService.getAll({ limit: 1000 }),
         jobsService.getAll()
       ]);
 
-      const items = inventoryResponse.data.data;
+      const items = itemsResponse.data.data;
       const jobs = jobsResponse.data.data;
 
-      const totalValue = items.reduce((sum, item) => {
-        return sum + (item.quantity * item.unit_price);
-      }, 0);
-
-      const lowStock = items.filter(item => item.quantity < 100);
+      // Only show Tire Shop items in low stock alerts
+      const lowStock = items.filter(item => item.section === 'Tire Shop' && item.quantity < 100);
       const activeJobs = jobs.filter(job => job.status === 'active').length;
+
+      // Calculate total value and split by section
+      const totalValue = items.reduce((sum, item) => 
+        sum + (item.unit_price * item.quantity), 0
+      );
+
+      // Calculate Tire Shop value
+      const tireShopValue = items
+        .filter(item => item.section === 'Tire Shop')
+        .reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+
+      // Calculate Main Shop value (Body Shop)
+      const mainShopValue = items
+        .filter(item => item.section === 'Main Shop')
+        .reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
 
       setStats({
         totalItems: items.length,
-        totalValue: totalValue.toFixed(2),
-        activeJobs,
-        lowStockItems: lowStock
+        totalValue,
+        tireShopValue,
+        mainShopValue,
+        lowStockCount: lowStock.length,
+        activeJobs
       });
+
+      // Sort by quantity (lowest first) and take top 10
+      setLowStockItems(lowStock.sort((a, b) => a.quantity - b.quantity).slice(0, 10));
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -64,92 +82,95 @@ const Dashboard = () => {
     <div>
       <Navigation />
       <div className="page-container">
-        <h2 className="page-title">Dashboard Overview</h2>
+        <h2 className="page-title">Dashboard</h2>
         
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-content">
-              <div className="stat-info">
-                <p className="stat-label">Total Items</p>
-                <p className="stat-value">{stats.totalItems}</p>
-              </div>
-              <div className="stat-icon blue">
-                <Package size={24} />
-              </div>
+            <div className="stat-header">
+              <Package className="stat-icon" />
+              <span className="stat-label">Total Items</span>
             </div>
+            <div className="stat-value">{stats.totalItems}</div>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-content">
-              <div className="stat-info">
-                <p className="stat-label">Total Value</p>
-                <p className="stat-value">${stats.totalValue}</p>
-              </div>
-              <div className="stat-icon green">
-                <DollarSign size={24} />
-              </div>
+
+          <div className="stat-card value-card">
+            <div className="stat-header">
+              <DollarSign className="stat-icon" />
+              <span className="stat-label">Tire Shop Value</span>
             </div>
+            <div className="stat-value">${stats.tireShopValue.toFixed(2)}</div>
+            <div className="stat-sublabel">Current inventory value</div>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-content">
-              <div className="stat-info">
-                <p className="stat-label">Active Jobs</p>
-                <p className="stat-value">{stats.activeJobs}</p>
-              </div>
-              <div className="stat-icon purple">
-                <Briefcase size={24} />
-              </div>
+
+          <div className="stat-card value-card">
+            <div className="stat-header">
+              <DollarSign className="stat-icon" />
+              <span className="stat-label">Body Shop Value</span>
             </div>
+            <div className="stat-value">${stats.mainShopValue.toFixed(2)}</div>
+            <div className="stat-sublabel">Current inventory value</div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-header">
+              <Wrench className="stat-icon" />
+              <span className="stat-label">Active Jobs</span>
+            </div>
+            <div className="stat-value">{stats.activeJobs}</div>
           </div>
         </div>
-        
-        <div className="dashboard-content">
-          <div className="dashboard-section">
-            <h3 className="section-title">Quick Actions</h3>
-            <div className="action-buttons">
-              <button 
-                className="action-button blue"
-                onClick={() => navigate('/inventory')}
-              >
-                <Plus size={20} />
-                <span>Add New Item</span>
-              </button>
-              <button 
-                className="action-button green"
-                onClick={() => navigate('/inventory')}
-              >
-                <Upload size={20} />
-                <span>Import from Excel</span>
-              </button>
-              <button 
-                className="action-button purple"
-                onClick={() => navigate('/jobs')}
-              >
-                <Briefcase size={20} />
-                <span>Create New Job</span>
-              </button>
+
+        <div className="alerts-section">
+          <div className="alert-card">
+            <div className="alert-header">
+              <AlertTriangle className="alert-icon" />
+              <h3>Low Stock Alert - Tire Shop</h3>
+              {stats.lowStockCount > 0 && (
+                <span className="alert-count">{stats.lowStockCount} items</span>
+              )}
             </div>
-          </div>
-          
-          <div className="dashboard-section">
-            <h3 className="section-title">Low Stock Alert</h3>
-            {stats.lowStockItems.length === 0 ? (
-              <p className="empty-message">All items are well stocked!</p>
-            ) : (
-              <div className="low-stock-list">
-                {stats.lowStockItems.map(item => (
-                  <div key={item.id} className="low-stock-item">
-                    <div className="item-details">
-                      <p className="item-name">{item.item_name}</p>
-                      <p className="item-quantity">Quantity: {item.quantity}</p>
-                    </div>
-                    <div className="alert-badge">
-                      <AlertTriangle size={16} />
-                      Low
-                    </div>
+            {lowStockItems.length > 0 ? (
+              <>
+                <div className="low-stock-table">
+                  <div className="table-header">
+                    <div className="col-item">Item Name</div>
+                    <div className="col-category">Category</div>
+                    <div className="col-quantity">Current Stock</div>
+                    <div className="col-status">Status</div>
                   </div>
-                ))}
+                  <div className="table-body">
+                    {lowStockItems.map(item => (
+                      <div key={item.id} className="table-row">
+                        <div className="col-item">
+                          <span className="item-name">{item.item_name}</span>
+                        </div>
+                        <div className="col-category">
+                          <span className="category-badge">{item.category || 'Uncategorized'}</span>
+                        </div>
+                        <div className="col-quantity">
+                          <span className="quantity-text">{item.quantity} units</span>
+                        </div>
+                        <div className="col-status">
+                          <span className={`status-badge ${item.quantity < 50 ? 'critical' : item.quantity < 75 ? 'warning' : 'low'}`}>
+                            {item.quantity < 50 ? 'Critical' : item.quantity < 75 ? 'Warning' : 'Low'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {stats.lowStockCount > 10 && (
+                  <div className="alert-footer">
+                    <span className="alert-more">
+                      + {stats.lowStockCount - 10} more items below stock threshold
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="alert-empty">
+                <Package size={48} className="empty-icon" />
+                <p>All Tire Shop items are well stocked!</p>
               </div>
             )}
           </div>
