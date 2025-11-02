@@ -32,7 +32,7 @@ A full-stack inventory and job management system built for automotive shops, fea
 - **Modern UI** - Clean, professional interface
 - **Status Badges** - Color-coded visual indicators
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - React 18
@@ -53,7 +53,7 @@ A full-stack inventory and job management system built for automotive shops, fea
 - Node.js (v14 or higher)
 - npm or yarn
 
-## 🚀 Installation
+## Installation
 
 ### 1. Clone the repository
 ```bash
@@ -78,7 +78,7 @@ npm start
 ```
 Frontend will run on `http://localhost:3000`
 
-## 🔐 Default Login
+## Default Login
 
 **Username:** `admin`  
 **Password:** `admin123`
@@ -105,7 +105,7 @@ inventory-management-system/
 └── README.md
 ```
 
-## 🎨 Features in Detail
+## Features in Detail
 
 ### Inventory Section Tabs
 - Switch between Tire Shop and Body Shop inventory
@@ -174,7 +174,7 @@ The system uses SQLite for easy setup. Database schema includes:
 - `POST /api/jobs/:id/items` - Add parts to job
 - `DELETE /api/jobs/:jobId/items/:itemId` - Remove part from job
 
-## 🚧 Future Enhancements
+## Future Enhancements
 
 - [ ] File upload for job documents/photos
 - [ ] PDF invoice generation
@@ -184,20 +184,16 @@ The system uses SQLite for easy setup. Database schema includes:
 - [ ] Backup and restore functionality
 - [ ] Mobile app
 
-## 🤝 Contributing
+## Contributing
 
 Contributions, issues, and feature requests are welcome!
 
-## 📝 License
-
-This project is [MIT](LICENSE) licensed.
-
-## 👤 Author
+## Author
 
 **Your Name**
 - GitHub: [@francescoa27122](https://github.com/francescoa27122)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with modern web technologies
 - Designed for automotive shop management
