@@ -83,8 +83,6 @@ Frontend will run on `http://localhost:3000`
 **Username:** `admin`  
 **Password:** `admin123`
 
-⚠️ **Important:** Change the default password in production!
-
 ## 📁 Project Structure
 
 ```
