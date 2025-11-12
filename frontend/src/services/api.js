@@ -92,4 +92,38 @@ export const jobsService = {
   removeItem: (jobId, itemId) => api.delete(`/jobs/${jobId}/items/${itemId}`)
 };
 
+// Users services
+export const usersService = {
+  getAll: () => api.get('/users'),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  changePassword: (id, password) => api.put(`/users/${id}/password`, { password }),
+  deactivate: (id) => api.delete(`/users/${id}`)
+};
+
+// Customers services
+export const customersService = {
+  getAll: (params) => api.get('/customers', { params }),
+  getById: (id) => api.get(`/customers/${id}`),
+  create: (data) => api.post('/customers', data),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  delete: (id) => api.delete(`/customers/${id}`)
+};
+
+// Activity Logs services
+export const activityLogsService = {
+  getAll: (params) => api.get('/activity-logs', { params }),
+  getRecent: () => api.get('/activity-logs/recent'),
+  getStats: () => api.get('/activity-logs/stats')
+};
+
+// Reports services
+export const reportsService = {
+  getInventorySummary: () => api.get('/reports/inventory/summary'),
+  getJobsSummary: () => api.get('/reports/jobs/summary'),
+  getCustomersSummary: () => api.get('/reports/customers/summary'),
+  getActivitySummary: (params) => api.get('/reports/activity/summary', { params }),
+  getDashboard: () => api.get('/reports/dashboard')
+};
+
 export default api;

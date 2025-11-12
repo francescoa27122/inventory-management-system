@@ -39,6 +39,22 @@ const Navigation = () => {
           <Link to="/jobs" className={isActive('/jobs')}>
             Jobs
           </Link>
+          <Link to="/customers" className={isActive('/customers')}>
+            Customers
+          </Link>
+          <Link to="/reports" className={isActive('/reports')}>
+            Reports
+          </Link>
+          {user?.role === 'admin' && (
+            <>
+              <Link to="/users" className={isActive('/users')}>
+                Users
+              </Link>
+              <Link to="/activity" className={isActive('/activity')}>
+                Activity
+              </Link>
+            </>
+          )}
         </div>
         
         <div className="nav-user">

@@ -3,14 +3,27 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const socketManager = require('./websocket/socketManager');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const inventoryRoutes = require('./routes/inventory');
 const jobsRoutes = require('./routes/jobs');
+const usersRoutes = require('./routes/users');
+const customersRoutes = require('./routes/customers');
+const activityLogsRoutes = require('./routes/activityLogs');
+const reportsRoutes = require('./routes/reports');
+const jobPhotosRoutes = require('./routes/jobPhotos');
+const timeTrackingRoutes = require('./routes/timeTracking');
+const jobTemplatesRoutes = require('./routes/jobTemplates');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Initialize WebSocket server
+socketManager.initialize(server);
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -30,6 +43,13 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/auth', authRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/customers', customersRoutes);
+app.use('/api/activity-logs', activityLogsRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/jobs', jobPhotosRoutes);
+app.use('/api/jobs', timeTrackingRoutes);
+app.use('/api/job-templates', jobTemplatesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -54,11 +74,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server - use server.listen instead of app.listen for Socket.IO
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 API: http://localhost:${PORT}/api`);
+  console.log(`🔌 WebSocket server ready`);
 });
 
-module.exports = app;
+module.exports = { app, server, socketManager };

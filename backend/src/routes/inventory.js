@@ -4,6 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
+const socketManager = require('../websocket/socketManager');
 const router = express.Router();
 
 // Configure multer for file uploads
@@ -161,6 +162,9 @@ router.post('/', authenticateToken, (req, res) => {
 
     const newItem = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(result.lastInsertRowid);
 
+    // Broadcast the new item to all connected clients
+    socketManager.broadcastInventoryUpdate('created', newItem);
+
     res.status(201).json({
       success: true,
       message: 'Item added successfully',
@@ -231,6 +235,9 @@ router.put('/:id', authenticateToken, (req, res) => {
 
     const updatedItem = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(req.params.id);
 
+    // Broadcast the update to all connected clients
+    socketManager.broadcastInventoryUpdate('updated', updatedItem);
+
     res.json({
       success: true,
       message: 'Item updated successfully',
@@ -248,14 +255,20 @@ router.put('/:id', authenticateToken, (req, res) => {
 // Delete item
 router.delete('/:id', authenticateToken, (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM inventory_items WHERE id = ?').run(req.params.id);
-
-    if (result.changes === 0) {
+    // Get the item before deleting so we can broadcast it
+    const item = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(req.params.id);
+    
+    if (!item) {
       return res.status(404).json({
         success: false,
         message: 'Item not found'
       });
     }
+
+    const result = db.prepare('DELETE FROM inventory_items WHERE id = ?').run(req.params.id);
+
+    // Broadcast the deletion to all connected clients
+    socketManager.broadcastInventoryUpdate('deleted', item);
 
     res.json({
       success: true,
@@ -343,6 +356,7 @@ router.post('/import', authenticateToken, upload.single('file'), (req, res) => {
     let successful = 0;
     let failed = 0;
     const errors = [];
+    const importedItems = [];
 
     const insert = db.prepare(`
       INSERT INTO inventory_items (
@@ -366,7 +380,7 @@ router.post('/import', authenticateToken, upload.single('file'), (req, res) => {
           return;
         }
 
-        insert.run(
+        const result = insert.run(
           item_name,
           row['Description'] || row['description'] || '',
           row['Category'] || row['category'] || '',
@@ -378,6 +392,10 @@ router.post('/import', authenticateToken, upload.single('file'), (req, res) => {
           req.user.id
         );
 
+        // Get the newly created item
+        const newItem = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(result.lastInsertRowid);
+        importedItems.push(newItem);
+
         successful++;
       } catch (error) {
         failed++;
@@ -386,6 +404,11 @@ router.post('/import', authenticateToken, upload.single('file'), (req, res) => {
           error: error.message
         });
       }
+    });
+
+    // Broadcast all imported items
+    importedItems.forEach(item => {
+      socketManager.broadcastInventoryUpdate('created', item);
     });
 
     // Log import

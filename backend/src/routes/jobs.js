@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../models/database');
 const { authenticateToken } = require('../middleware/auth');
+const socketManager = require('../websocket/socketManager');
 const router = express.Router();
 
 // Get all jobs
@@ -126,6 +127,9 @@ router.post('/', authenticateToken, (req, res) => {
 
     const newJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(result.lastInsertRowid);
 
+    // Broadcast the new job to all connected clients
+    socketManager.broadcastJobUpdate('created', newJob);
+
     res.status(201).json({
       success: true,
       message: 'Job created successfully',
@@ -186,6 +190,9 @@ router.put('/:id', authenticateToken, (req, res) => {
 
     const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
 
+    // Broadcast the update to all connected clients
+    socketManager.broadcastJobUpdate('updated', updatedJob);
+
     res.json({
       success: true,
       message: 'Job updated successfully',
@@ -203,18 +210,24 @@ router.put('/:id', authenticateToken, (req, res) => {
 // Delete job
 router.delete('/:id', authenticateToken, (req, res) => {
   try {
-    // First delete all job items
-    db.prepare('DELETE FROM job_items WHERE job_id = ?').run(req.params.id);
+    // Get the job before deleting
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
     
-    // Then delete the job
-    const result = db.prepare('DELETE FROM jobs WHERE id = ?').run(req.params.id);
-
-    if (result.changes === 0) {
+    if (!job) {
       return res.status(404).json({
         success: false,
         message: 'Job not found'
       });
     }
+
+    // First delete all job items
+    db.prepare('DELETE FROM job_items WHERE job_id = ?').run(req.params.id);
+    
+    // Then delete the job
+    db.prepare('DELETE FROM jobs WHERE id = ?').run(req.params.id);
+
+    // Broadcast the deletion to all connected clients
+    socketManager.broadcastJobUpdate('deleted', job);
 
     res.json({
       success: true,
@@ -247,12 +260,14 @@ router.post('/:id/items', authenticateToken, (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?)
     `);
 
+    const addedItems = [];
+
     const insertMany = db.transaction((items) => {
       for (const item of items) {
         const inventoryItem = db.prepare('SELECT unit_price FROM inventory_items WHERE id = ?').get(item.item_id);
         
         if (inventoryItem) {
-          insert.run(
+          const result = insert.run(
             req.params.id,
             item.item_id,
             item.quantity_used,
@@ -260,11 +275,19 @@ router.post('/:id/items', authenticateToken, (req, res) => {
             item.status || 'ordered',
             item.notes || null
           );
+
+          const newItem = db.prepare('SELECT * FROM job_items WHERE id = ?').get(result.lastInsertRowid);
+          addedItems.push(newItem);
         }
       }
     });
 
     insertMany(items);
+
+    // Broadcast each added item
+    addedItems.forEach(item => {
+      socketManager.broadcastJobItemUpdate(req.params.id, 'added', item);
+    });
 
     res.json({
       success: true,
@@ -306,6 +329,11 @@ router.patch('/:jobId/items/:itemId/status', authenticateToken, (req, res) => {
       });
     }
 
+    const updatedItem = db.prepare('SELECT * FROM job_items WHERE id = ?').get(req.params.itemId);
+
+    // Broadcast the item update
+    socketManager.broadcastJobItemUpdate(req.params.jobId, 'updated', updatedItem);
+
     res.json({
       success: true,
       message: 'Item status updated successfully'
@@ -322,17 +350,26 @@ router.patch('/:jobId/items/:itemId/status', authenticateToken, (req, res) => {
 // Remove item from job
 router.delete('/:jobId/items/:itemId', authenticateToken, (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM job_items WHERE id = ? AND job_id = ?').run(
+    // Get the item before deleting
+    const item = db.prepare('SELECT * FROM job_items WHERE id = ? AND job_id = ?').get(
       req.params.itemId,
       req.params.jobId
     );
 
-    if (result.changes === 0) {
+    if (!item) {
       return res.status(404).json({
         success: false,
         message: 'Item not found in job'
       });
     }
+
+    db.prepare('DELETE FROM job_items WHERE id = ? AND job_id = ?').run(
+      req.params.itemId,
+      req.params.jobId
+    );
+
+    // Broadcast the item removal
+    socketManager.broadcastJobItemUpdate(req.params.jobId, 'removed', item);
 
     res.json({
       success: true,

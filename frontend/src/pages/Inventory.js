@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, Upload, Edit2, Trash2, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Upload, Edit2, Trash2, X, Lock } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { inventoryService } from '../services/api';
+import { useInventoryUpdates, useEditLock } from '../hooks/useRealtimeUpdates';
+import { useWebSocket } from '../context/WebSocketContext';
 import './Inventory.css';
 
 const Inventory = () => {
@@ -27,6 +29,56 @@ const Inventory = () => {
     notes: '',
     section: 'Main Shop'
   });
+
+  const { connected } = useWebSocket();
+
+  // Handle real-time inventory updates
+  const handleItemCreated = useCallback((newItem) => {
+    console.log('New item created:', newItem);
+    setItems(prevItems => {
+      // Check if item already exists to avoid duplicates
+      const exists = prevItems.some(item => item.id === newItem.id);
+      if (exists) return prevItems;
+      
+      // Only add if it matches the current section
+      if (newItem.section === activeSection) {
+        return [...prevItems, newItem];
+      }
+      return prevItems;
+    });
+  }, [activeSection]);
+
+  const handleItemUpdated = useCallback((updatedItem) => {
+    console.log('Item updated:', updatedItem);
+    setItems(prevItems => {
+      // Remove item if it was moved to a different section
+      if (updatedItem.section !== activeSection) {
+        return prevItems.filter(item => item.id !== updatedItem.id);
+      }
+      
+      // Update the item if it exists, add it if it doesn't
+      const index = prevItems.findIndex(item => item.id === updatedItem.id);
+      if (index !== -1) {
+        const newItems = [...prevItems];
+        newItems[index] = updatedItem;
+        return newItems;
+      } else if (updatedItem.section === activeSection) {
+        return [...prevItems, updatedItem];
+      }
+      return prevItems;
+    });
+  }, [activeSection]);
+
+  const handleItemDeleted = useCallback((deletedItem) => {
+    console.log('Item deleted:', deletedItem);
+    setItems(prevItems => prevItems.filter(item => item.id !== deletedItem.id));
+  }, []);
+
+  useInventoryUpdates({
+    onCreated: handleItemCreated,
+    onUpdated: handleItemUpdated,
+    onDeleted: handleItemDeleted
+  })
 
   useEffect(() => {
     fetchItems();
@@ -69,7 +121,7 @@ const Inventory = () => {
       alert('Item added successfully!');
       setShowAddModal(false);
       resetForm();
-      fetchItems();
+      // No need to fetchItems() - real-time update will handle it
     } catch (error) {
       console.error('Error adding item:', error);
       alert(error.response?.data?.message || 'Failed to add item');
@@ -89,7 +141,7 @@ const Inventory = () => {
       setShowEditModal(false);
       setEditingItem(null);
       resetForm();
-      fetchItems();
+      // No need to fetchItems() - real-time update will handle it
     } catch (error) {
       console.error('Error updating item:', error);
       alert(error.response?.data?.message || 'Failed to update item');
@@ -101,7 +153,7 @@ const Inventory = () => {
       try {
         await inventoryService.delete(id);
         alert('Item deleted successfully!');
-        fetchItems();
+        // No need to fetchItems() - real-time update will handle it
       } catch (error) {
         console.error('Error deleting item:', error);
         alert('Failed to delete item');
@@ -154,7 +206,7 @@ const Inventory = () => {
       const stats = response.data.stats;
       alert(`Import completed!\nSuccessful: ${stats.successful}\nFailed: ${stats.failed}`);
       setShowImportModal(false);
-      fetchItems();
+      // No need to fetchItems() - real-time updates will handle it
     } catch (error) {
       console.error('Error importing file:', error);
       alert(error.response?.data?.message || 'Failed to import file');
@@ -183,7 +235,11 @@ const Inventory = () => {
       <Navigation />
       <div className="page-container">
         <div className="page-header">
-          <h2 className="page-title">Inventory Management</h2>
+          <h2 className="page-title">
+            Inventory Management
+            {connected && <span className="connection-status connected" title="Real-time updates active">●</span>}
+            {!connected && <span className="connection-status disconnected" title="Offline - changes will sync when reconnected">●</span>}
+          </h2>
           <div className="header-actions">
             <button className="btn btn-success" onClick={() => setShowImportModal(true)}>
               <Upload size={18} />
@@ -244,30 +300,12 @@ const Inventory = () => {
                 </tr>
               ) : (
                 filteredItems.map(item => (
-                  <tr key={item.id}>
-                    <td className="item-name">{item.item_name}</td>
-                    <td>{item.category || '-'}</td>
-                    <td>{item.quantity}</td>
-                    <td>${item.unit_price.toFixed(2)}</td>
-                    <td>{item.supplier || '-'}</td>
-                    <td>{item.location || '-'}</td>
-                    <td className="actions-cell">
-                      <button 
-                        className="icon-btn edit"
-                        onClick={() => openEditModal(item)}
-                        title="Edit"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        className="icon-btn delete"
-                        onClick={() => handleDeleteItem(item.id, item.item_name)}
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                  <InventoryRow 
+                    key={item.id} 
+                    item={item}
+                    onEdit={openEditModal}
+                    onDelete={handleDeleteItem}
+                  />
                 ))
               )}
             </tbody>
@@ -373,110 +411,17 @@ const Inventory = () => {
 
         {/* Edit Item Modal */}
         {showEditModal && (
-          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Edit Item</h3>
-                <button className="close-btn" onClick={() => setShowEditModal(false)}>
-                  <X size={24} />
-                </button>
-              </div>
-              <form className="modal-form" onSubmit={handleEditItem}>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Item Name *</label>
-                    <input
-                      type="text"
-                      name="item_name"
-                      value={formData.item_name}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Category</label>
-                    <input
-                      type="text"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Quantity *</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Unit Price *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      name="unit_price"
-                      value={formData.unit_price}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Supplier</label>
-                    <input
-                      type="text"
-                      name="supplier"
-                      value={formData.supplier}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Location</label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="form-field">
-                  <label>Section</label>
-                  <select
-                    name="section"
-                    value={formData.section}
-                    onChange={handleInputChange}
-                  >
-                    <option value="Main Shop">Main Shop</option>
-                    <option value="Tire Shop">Tire Shop</option>
-                  </select>
-                </div>
-                <div className="form-field">
-                  <label>Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows="3"
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Update Item
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <EditItemModal
+            formData={formData}
+            onInputChange={handleInputChange}
+            onSubmit={handleEditItem}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingItem(null);
+              resetForm();
+            }}
+            itemId={editingItem?.id}
+          />
         )}
 
         {/* Import Modal */}
@@ -502,6 +447,215 @@ const Inventory = () => {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Separate component for inventory rows to handle individual item locks
+const InventoryRow = ({ item, onEdit, onDelete }) => {
+  const { isItemLocked, getLockInfo } = useWebSocket();
+  const locked = isItemLocked(item.id, 'inventory');
+  const lockInfo = getLockInfo(item.id, 'inventory');
+
+  return (
+    <tr className={locked ? 'locked-row' : ''}>
+      <td className="item-name">
+        {item.item_name}
+        {locked && (
+          <span className="lock-indicator" title={`Being edited by ${lockInfo?.username}`}>
+            <Lock size={14} />
+          </span>
+        )}
+      </td>
+      <td>{item.category || '-'}</td>
+      <td>{item.quantity}</td>
+      <td>${item.unit_price.toFixed(2)}</td>
+      <td>{item.supplier || '-'}</td>
+      <td>{item.location || '-'}</td>
+      <td className="actions-cell">
+        <button 
+          className="icon-btn edit"
+          onClick={() => onEdit(item)}
+          disabled={locked}
+          title={locked ? `Being edited by ${lockInfo?.username}` : 'Edit'}
+        >
+          <Edit2 size={16} />
+        </button>
+        <button 
+          className="icon-btn delete"
+          onClick={() => onDelete(item.id, item.item_name)}
+          disabled={locked}
+          title={locked ? `Being edited by ${lockInfo?.username}` : 'Delete'}
+        >
+          <Trash2 size={16} />
+        </button>
+      </td>
+    </tr>
+  );
+};
+
+// Edit modal with lock management
+const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) => {
+  const { acquireLock, releaseLock } = useEditLock('inventory');
+  const [lockAcquired, setLockAcquired] = useState(false);
+  const [lockError, setLockError] = useState(null);
+
+  useEffect(() => {
+    // Try to acquire lock when modal opens
+    const tryAcquireLock = async () => {
+      try {
+        const success = await acquireLock(itemId);
+        if (success) {
+          setLockAcquired(true);
+          setLockError(null);
+        }
+      } catch (error) {
+        setLockError(error.message);
+      }
+    };
+
+    tryAcquireLock();
+
+    // Release lock when modal closes
+    return () => {
+      if (lockAcquired) {
+        releaseLock(itemId);
+      }
+    };
+  }, [itemId, acquireLock, releaseLock, lockAcquired]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await onSubmit(e);
+    if (lockAcquired) {
+      releaseLock(itemId);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Edit Item</h3>
+          <button className="close-btn" onClick={onClose}>
+            <X size={24} />
+          </button>
+        </div>
+
+        {lockError && (
+          <div className="lock-error-banner">
+            <Lock size={16} />
+            {lockError}
+          </div>
+        )}
+
+        <form className="modal-form" onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Item Name *</label>
+              <input
+                type="text"
+                name="item_name"
+                value={formData.item_name}
+                onChange={onInputChange}
+                disabled={!lockAcquired || lockError}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label>Category</label>
+              <input
+                type="text"
+                name="category"
+                value={formData.category}
+                onChange={onInputChange}
+                disabled={!lockAcquired || lockError}
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Quantity *</label>
+              <input
+                type="number"
+                name="quantity"
+                value={formData.quantity}
+                onChange={onInputChange}
+                disabled={!lockAcquired || lockError}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label>Unit Price *</label>
+              <input
+                type="number"
+                step="0.01"
+                name="unit_price"
+                value={formData.unit_price}
+                onChange={onInputChange}
+                disabled={!lockAcquired || lockError}
+                required
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Supplier</label>
+              <input
+                type="text"
+                name="supplier"
+                value={formData.supplier}
+                onChange={onInputChange}
+                disabled={!lockAcquired || lockError}
+              />
+            </div>
+            <div className="form-field">
+              <label>Location</label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={onInputChange}
+                disabled={!lockAcquired || lockError}
+              />
+            </div>
+          </div>
+          <div className="form-field">
+            <label>Section</label>
+            <select
+              name="section"
+              value={formData.section}
+              onChange={onInputChange}
+              disabled={!lockAcquired || lockError}
+            >
+              <option value="Main Shop">Main Shop</option>
+              <option value="Tire Shop">Tire Shop</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label>Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={onInputChange}
+              disabled={!lockAcquired || lockError}
+              rows="3"
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={!lockAcquired || lockError}
+            >
+              Update Item
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
