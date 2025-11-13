@@ -190,7 +190,7 @@ Contributions, issues, and feature requests are welcome!
 
 ## Author
 
-**Your Name**
+**Francesco Assalone**
 - GitHub: [@francescoa27122](https://github.com/francescoa27122)
 
 ## Acknowledgments
@@ -198,7 +198,3 @@ Contributions, issues, and feature requests are welcome!
 - Built with modern web technologies
 - Designed for automotive shop management
 - Optimized for real-world use
-
----
-
-Made with ❤️ for efficient inventory management
