@@ -62,6 +62,38 @@
   gap: 1rem;
 }
 
+.language-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  background-color: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.language-toggle:hover {
+  background-color: var(--bg-tertiary);
+  transform: scale(1.05);
+  border-color: var(--accent-purple);
+}
+
+.language-toggle:active {
+  transform: scale(0.95);
+}
+
+.language-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -157,6 +189,15 @@
 
   .user-info span {
     display: none;
+  }
+
+  .language-label {
+    display: none;
+  }
+
+  .language-toggle {
+    width: 40px;
+    padding: 0;
   }
 }
 

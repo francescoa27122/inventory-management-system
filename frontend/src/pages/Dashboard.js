@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Package, DollarSign, Wrench, AlertTriangle } from 'lucide-react';
 import Navigation from '../components/Navigation';
+import EmptyState from '../components/EmptyState';
 import { inventoryService, jobsService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
+  const { t } = useLanguage();
   const [stats, setStats] = useState({
     totalItems: 0,
     totalValue: 0,
@@ -72,7 +75,7 @@ const Dashboard = () => {
       <div>
         <Navigation />
         <div className="page-container">
-          <div className="loading">Loading dashboard...</div>
+          <div className="loading">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -82,13 +85,13 @@ const Dashboard = () => {
     <div>
       <Navigation />
       <div className="page-container">
-        <h2 className="page-title">Dashboard</h2>
+        <h2 className="page-title">{t('dashboard.title')}</h2>
         
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-header">
               <Package className="stat-icon" />
-              <span className="stat-label">Total Items</span>
+              <span className="stat-label">{t('dashboard.totalItems')}</span>
             </div>
             <div className="stat-value">{stats.totalItems}</div>
           </div>
@@ -96,25 +99,25 @@ const Dashboard = () => {
           <div className="stat-card value-card">
             <div className="stat-header">
               <DollarSign className="stat-icon" />
-              <span className="stat-label">Tire Shop Value</span>
+              <span className="stat-label">{t('dashboard.tireShopValue')}</span>
             </div>
             <div className="stat-value">${stats.tireShopValue.toFixed(2)}</div>
-            <div className="stat-sublabel">Current inventory value</div>
+            <div className="stat-sublabel">{t('dashboard.currentInventoryValue')}</div>
           </div>
 
           <div className="stat-card value-card">
             <div className="stat-header">
               <DollarSign className="stat-icon" />
-              <span className="stat-label">Body Shop Value</span>
+              <span className="stat-label">{t('dashboard.bodyShopValue')}</span>
             </div>
             <div className="stat-value">${stats.mainShopValue.toFixed(2)}</div>
-            <div className="stat-sublabel">Current inventory value</div>
+            <div className="stat-sublabel">{t('dashboard.currentInventoryValue')}</div>
           </div>
 
           <div className="stat-card">
             <div className="stat-header">
               <Wrench className="stat-icon" />
-              <span className="stat-label">Active Jobs</span>
+              <span className="stat-label">{t('dashboard.activeJobs')}</span>
             </div>
             <div className="stat-value">{stats.activeJobs}</div>
           </div>
@@ -124,19 +127,19 @@ const Dashboard = () => {
           <div className="alert-card">
             <div className="alert-header">
               <AlertTriangle className="alert-icon" />
-              <h3>Low Stock Alert - Tire Shop</h3>
+              <h3>{t('dashboard.lowStockAlert')}</h3>
               {stats.lowStockCount > 0 && (
-                <span className="alert-count">{stats.lowStockCount} items</span>
+                <span className="alert-count">{stats.lowStockCount} {t('dashboard.items')}</span>
               )}
             </div>
             {lowStockItems.length > 0 ? (
               <>
                 <div className="low-stock-table">
                   <div className="table-header">
-                    <div className="col-item">Item Name</div>
-                    <div className="col-category">Category</div>
-                    <div className="col-quantity">Current Stock</div>
-                    <div className="col-status">Status</div>
+                    <div className="col-item">{t('dashboard.itemName')}</div>
+                    <div className="col-category">{t('inventory.category')}</div>
+                    <div className="col-quantity">{t('dashboard.currentStock')}</div>
+                    <div className="col-status">{t('dashboard.status')}</div>
                   </div>
                   <div className="table-body">
                     {lowStockItems.map(item => (
@@ -145,14 +148,14 @@ const Dashboard = () => {
                           <span className="item-name">{item.item_name}</span>
                         </div>
                         <div className="col-category">
-                          <span className="category-badge">{item.category || 'Uncategorized'}</span>
+                          <span className="category-badge">{item.category || t('inventory.uncategorized')}</span>
                         </div>
                         <div className="col-quantity">
-                          <span className="quantity-text">{item.quantity} units</span>
+                          <span className="quantity-text">{item.quantity} {t('dashboard.units')}</span>
                         </div>
                         <div className="col-status">
                           <span className={`status-badge ${item.quantity < 50 ? 'critical' : item.quantity < 75 ? 'warning' : 'low'}`}>
-                            {item.quantity < 50 ? 'Critical' : item.quantity < 75 ? 'Warning' : 'Low'}
+                            {item.quantity < 50 ? t('dashboard.critical') : item.quantity < 75 ? t('dashboard.warning') : t('dashboard.low')}
                           </span>
                         </div>
                       </div>
@@ -162,16 +165,17 @@ const Dashboard = () => {
                 {stats.lowStockCount > 10 && (
                   <div className="alert-footer">
                     <span className="alert-more">
-                      + {stats.lowStockCount - 10} more items below stock threshold
+                      + {stats.lowStockCount - 10} {t('dashboard.moreItemsBelowThreshold')}
                     </span>
                   </div>
                 )}
               </>
             ) : (
-              <div className="alert-empty">
-                <Package size={48} className="empty-icon" />
-                <p>All Tire Shop items are well stocked!</p>
-              </div>
+              <EmptyState
+                icon={Package}
+                title={t('dashboard.allStockedUp')}
+                description={t('dashboard.allStockedUpDesc')}
+              />
             )}
           </div>
         </div>

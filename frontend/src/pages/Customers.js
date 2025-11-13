@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { customersService } from '../services/api';
 import Navigation from '../components/Navigation';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../hooks/useConfirm';
 import './Customers.css';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -24,20 +24,12 @@ const Customers = () => {
     notes: ''
   });
 
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
+
   useEffect(() => {
     fetchCustomers();
   }, []);
-
-  // Auto-hide notifications
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess('');
-        setError('');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
 
   const fetchCustomers = async () => {
     try {
@@ -46,7 +38,7 @@ const Customers = () => {
         setCustomers(response.data.customers);
       }
     } catch (err) {
-      setError('Failed to fetch customers');
+      showError('Failed to fetch customers');
       console.error(err);
     } finally {
       setLoading(false);
@@ -58,13 +50,13 @@ const Customers = () => {
     try {
       const response = await customersService.create(formData);
       if (response.data.success) {
-        setSuccess('Customer added successfully!');
+        showSuccess('Customer added successfully!');
         setShowAddModal(false);
         resetForm();
         fetchCustomers();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add customer');
+      showError(err.response?.data?.message || 'Failed to add customer');
     }
   };
 
@@ -73,28 +65,29 @@ const Customers = () => {
     try {
       const response = await customersService.update(selectedCustomer.id, formData);
       if (response.data.success) {
-        setSuccess('Customer updated successfully!');
+        showSuccess('Customer updated successfully!');
         setShowEditModal(false);
         setSelectedCustomer(null);
         resetForm();
         fetchCustomers();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update customer');
+      showError(err.response?.data?.message || 'Failed to update customer');
     }
   };
 
   const handleDeleteCustomer = async (customer) => {
-    if (!window.confirm(`Are you sure you want to delete ${customer.name}?`)) return;
+    const confirmed = await confirm(`Are you sure you want to delete ${customer.name}?`);
+    if (!confirmed) return;
     
     try {
       const response = await customersService.delete(customer.id);
       if (response.data.success) {
-        setSuccess('Customer deleted successfully!');
+        showSuccess('Customer deleted successfully!');
         fetchCustomers();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete customer');
+      showError(err.response?.data?.message || 'Failed to delete customer');
     }
   };
 
@@ -145,10 +138,6 @@ const Customers = () => {
     <>
       <Navigation />
       <div className="customers-page">
-        {/* Toast Notifications */}
-        {error && <div className="toast toast-error"><span>{error}</span></div>}
-        {success && <div className="toast toast-success"><span>{success}</span></div>}
-
         <div className="header">
           <h1>Customers</h1>
           <button className="btn-primary" onClick={() => setShowAddModal(true)}>

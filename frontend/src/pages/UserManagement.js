@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { usersService } from '../services/api';
 import Navigation from '../components/Navigation';
+import { useToast } from '../context/ToastContext';
 import './UserManagement.css';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -22,20 +21,11 @@ const UserManagement = () => {
 
   const [newPassword, setNewPassword] = useState('');
 
+  const { showSuccess, showError } = useToast();
+
   useEffect(() => {
     fetchUsers();
   }, []);
-
-  // Auto-hide notifications after 3 seconds
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess('');
-        setError('');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
 
   const fetchUsers = async () => {
     try {
@@ -43,12 +33,11 @@ const UserManagement = () => {
       
       if (response.data.success) {
         setUsers(response.data.users);
-        setError('');
       } else {
-        setError(response.data.message);
+        showError(response.data.message);
       }
     } catch (err) {
-      setError('Failed to fetch users. Make sure you are logged in as an admin.');
+      showError('Failed to fetch users. Make sure you are logged in as an admin.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -57,44 +46,40 @@ const UserManagement = () => {
 
   const handleAddUser = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     try {
       const response = await usersService.create(newUser);
 
       if (response.data.success) {
-        setSuccess('User created successfully!');
+        showSuccess('User created successfully!');
         setShowAddModal(false);
         setNewUser({ username: '', password: '', full_name: '', email: '', role: 'user' });
         fetchUsers();
       } else {
-        setError(response.data.message);
+        showError(response.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create user');
+      showError(err.response?.data?.message || 'Failed to create user');
       console.error(err);
     }
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     try {
       const response = await usersService.changePassword(selectedUser.id, newPassword);
 
       if (response.data.success) {
-        setSuccess('Password changed successfully!');
+        showSuccess('Password changed successfully!');
         setShowPasswordModal(false);
         setNewPassword('');
         setSelectedUser(null);
       } else {
-        setError(response.data.message);
+        showError(response.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change password');
+      showError(err.response?.data?.message || 'Failed to change password');
       console.error(err);
     }
   };
@@ -109,14 +94,13 @@ const UserManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess(`User ${user.is_active ? 'deactivated' : 'activated'} successfully!`);
-        setError('');
+        showSuccess(`User ${user.is_active ? 'deactivated' : 'activated'} successfully!`);
         fetchUsers();
       } else {
-        setError(response.data.message);
+        showError(response.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update user');
+      showError(err.response?.data?.message || 'Failed to update user');
       console.error(err);
     }
   };
@@ -131,14 +115,13 @@ const UserManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess('User role updated successfully!');
-        setError('');
+        showSuccess('User role updated successfully!');
         fetchUsers();
       } else {
-        setError(response.data.message);
+        showError(response.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update user role');
+      showError(err.response?.data?.message || 'Failed to update user role');
       console.error(err);
     }
   };
@@ -156,18 +139,6 @@ const UserManagement = () => {
     <>
       <Navigation />
       <div className="user-management">
-        {/* Toast Notifications */}
-        {error && (
-          <div className="toast toast-error">
-            <span>{error}</span>
-          </div>
-        )}
-        {success && (
-          <div className="toast toast-success">
-            <span>{success}</span>
-          </div>
-        )}
-
         <div className="header">
           <h1>User Management</h1>
           <button className="btn-primary" onClick={() => setShowAddModal(true)}>

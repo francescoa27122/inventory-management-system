@@ -4,9 +4,13 @@ import Navigation from '../components/Navigation';
 import { inventoryService } from '../services/api';
 import { useInventoryUpdates, useEditLock } from '../hooks/useRealtimeUpdates';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../hooks/useConfirm';
+import { useLanguage } from '../context/LanguageContext';
 import './Inventory.css';
 
 const Inventory = () => {
+  const { t } = useLanguage();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +35,8 @@ const Inventory = () => {
   });
 
   const { connected } = useWebSocket();
+  const { showSuccess, showError, showInfo } = useToast();
+  const confirm = useConfirm();
 
   // Handle real-time inventory updates
   const handleItemCreated = useCallback((newItem) => {
@@ -94,7 +100,7 @@ const Inventory = () => {
       setItems(response.data.data);
     } catch (error) {
       console.error('Error fetching items:', error);
-      alert('Failed to load inventory items');
+      showError(t('inventory.errorLoadingItems'));
     } finally {
       setLoading(false);
     }
@@ -118,13 +124,13 @@ const Inventory = () => {
         minimum_stock: parseInt(formData.minimum_stock) || 0,
         section: activeSection
       });
-      alert('Item added successfully!');
+      showSuccess(t('inventory.itemAddedSuccess'));
       setShowAddModal(false);
       resetForm();
       // No need to fetchItems() - real-time update will handle it
     } catch (error) {
       console.error('Error adding item:', error);
-      alert(error.response?.data?.message || 'Failed to add item');
+      showError(error.response?.data?.message || t('inventory.errorAddingItem'));
     }
   };
 
@@ -137,26 +143,27 @@ const Inventory = () => {
         unit_price: parseFloat(formData.unit_price) || 0,
         minimum_stock: parseInt(formData.minimum_stock) || 0
       });
-      alert('Item updated successfully!');
+      showSuccess(t('inventory.itemUpdatedSuccess'));
       setShowEditModal(false);
       setEditingItem(null);
       resetForm();
       // No need to fetchItems() - real-time update will handle it
     } catch (error) {
       console.error('Error updating item:', error);
-      alert(error.response?.data?.message || 'Failed to update item');
+      showError(error.response?.data?.message || t('inventory.errorUpdatingItem'));
     }
   };
 
   const handleDeleteItem = async (id, itemName) => {
-    if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
+    const confirmed = await confirm(t('inventory.deleteConfirm', { name: itemName }));
+    if (confirmed) {
       try {
         await inventoryService.delete(id);
-        alert('Item deleted successfully!');
+        showSuccess(t('inventory.itemDeletedSuccess'));
         // No need to fetchItems() - real-time update will handle it
       } catch (error) {
         console.error('Error deleting item:', error);
-        alert('Failed to delete item');
+        showError(t('inventory.errorDeletingItem'));
       }
     }
   };
@@ -204,12 +211,12 @@ const Inventory = () => {
     try {
       const response = await inventoryService.import(file);
       const stats = response.data.stats;
-      alert(`Import completed!\nSuccessful: ${stats.successful}\nFailed: ${stats.failed}`);
+      showSuccess(t('inventory.importSuccess', { successful: stats.successful, failed: stats.failed }));
       setShowImportModal(false);
       // No need to fetchItems() - real-time updates will handle it
     } catch (error) {
       console.error('Error importing file:', error);
-      alert(error.response?.data?.message || 'Failed to import file');
+      showError(error.response?.data?.message || t('inventory.errorImporting'));
     }
   };
 
@@ -224,7 +231,7 @@ const Inventory = () => {
       <div>
         <Navigation />
         <div className="page-container">
-          <div className="loading">Loading inventory...</div>
+          <div className="loading">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -236,18 +243,18 @@ const Inventory = () => {
       <div className="page-container">
         <div className="page-header">
           <h2 className="page-title">
-            Inventory Management
-            {connected && <span className="connection-status connected" title="Real-time updates active">●</span>}
-            {!connected && <span className="connection-status disconnected" title="Offline - changes will sync when reconnected">●</span>}
+            {t('inventory.title')}
+            {connected && <span className="connection-status connected" title={t('inventory.realtimeActive')}>●</span>}
+            {!connected && <span className="connection-status disconnected" title={t('inventory.offline')}>●</span>}
           </h2>
           <div className="header-actions">
             <button className="btn btn-success" onClick={() => setShowImportModal(true)}>
               <Upload size={18} />
-              Import Excel
+              {t('inventory.importExcel')}
             </button>
             <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
               <Plus size={18} />
-              Add Item
+              {t('inventory.addItem')}
             </button>
           </div>
         </div>
@@ -258,13 +265,13 @@ const Inventory = () => {
             className={`tab ${activeSection === 'Main Shop' ? 'active' : ''}`}
             onClick={() => setActiveSection('Main Shop')}
           >
-            Main Shop Inventory
+            {t('inventory.mainShop')}
           </button>
           <button 
             className={`tab ${activeSection === 'Tire Shop' ? 'active' : ''}`}
             onClick={() => setActiveSection('Tire Shop')}
           >
-            Tire Shop Inventory
+            {t('inventory.tireShop')}
           </button>
         </div>
 
@@ -272,7 +279,7 @@ const Inventory = () => {
           <Search size={20} />
           <input
             type="text"
-            placeholder="Search by name, category, or supplier..."
+            placeholder={t('inventory.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -282,20 +289,20 @@ const Inventory = () => {
           <table className="inventory-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Supplier</th>
-                <th>Location</th>
-                <th>Actions</th>
+                <th>{t('inventory.name')}</th>
+                <th>{t('inventory.category')}</th>
+                <th>{t('inventory.quantity')}</th>
+                <th>{t('inventory.unitPrice')}</th>
+                <th>{t('inventory.supplier')}</th>
+                <th>{t('inventory.location')}</th>
+                <th>{t('inventory.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="empty-table">
-                    {searchTerm ? 'No items found matching your search' : `No items in ${activeSection} yet`}
+                    {searchTerm ? t('inventory.noItemsFound') : t('inventory.noItemsInSection', { section: activeSection })}
                   </td>
                 </tr>
               ) : (
@@ -317,7 +324,7 @@ const Inventory = () => {
           <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>Add New Item to {activeSection}</h3>
+                <h3>{t('inventory.addNewItemTo', { section: activeSection })}</h3>
                 <button className="close-btn" onClick={() => setShowAddModal(false)}>
                   <X size={24} />
                 </button>
@@ -325,7 +332,7 @@ const Inventory = () => {
               <form className="modal-form" onSubmit={handleAddItem}>
                 <div className="form-row">
                   <div className="form-field">
-                    <label>Item Name *</label>
+                    <label>{t('inventory.name')} *</label>
                     <input
                       type="text"
                       name="item_name"
@@ -335,7 +342,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div className="form-field">
-                    <label>Category</label>
+                    <label>{t('inventory.category')}</label>
                     <input
                       type="text"
                       name="category"
@@ -346,7 +353,7 @@ const Inventory = () => {
                 </div>
                 <div className="form-row">
                   <div className="form-field">
-                    <label>Quantity *</label>
+                    <label>{t('inventory.quantity')} *</label>
                     <input
                       type="number"
                       name="quantity"
@@ -356,7 +363,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div className="form-field">
-                    <label>Unit Price *</label>
+                    <label>{t('inventory.unitPrice')} *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -369,7 +376,7 @@ const Inventory = () => {
                 </div>
                 <div className="form-row">
                   <div className="form-field">
-                    <label>Supplier</label>
+                    <label>{t('inventory.supplier')}</label>
                     <input
                       type="text"
                       name="supplier"
@@ -378,7 +385,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div className="form-field">
-                    <label>Location</label>
+                    <label>{t('inventory.location')}</label>
                     <input
                       type="text"
                       name="location"
@@ -388,7 +395,7 @@ const Inventory = () => {
                   </div>
                 </div>
                 <div className="form-field">
-                  <label>Description</label>
+                  <label>{t('inventory.description')}</label>
                   <textarea
                     name="description"
                     value={formData.description}
@@ -398,10 +405,10 @@ const Inventory = () => {
                 </div>
                 <div className="modal-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button type="submit" className="btn btn-primary">
-                    Add Item
+                    {t('inventory.addItem')}
                   </button>
                 </div>
               </form>
@@ -429,14 +436,14 @@ const Inventory = () => {
           <div className="modal-overlay" onClick={() => setShowImportModal(false)}>
             <div className="modal small" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>Import from Excel</h3>
+                <h3>{t('inventory.importFromExcel')}</h3>
                 <button className="close-btn" onClick={() => setShowImportModal(false)}>
                   <X size={24} />
                 </button>
               </div>
               <div className="modal-body">
-                <p>Upload an Excel file (.xlsx, .xls) or CSV file with your inventory data.</p>
-                <p className="help-text">Required columns: Item Name, Quantity, Unit Price</p>
+                <p>{t('inventory.uploadExcelFile')}</p>
+                <p className="help-text">{t('inventory.requiredColumns')}</p>
                 <input
                   type="file"
                   accept=".xlsx,.xls,.csv"
@@ -454,6 +461,7 @@ const Inventory = () => {
 
 // Separate component for inventory rows to handle individual item locks
 const InventoryRow = ({ item, onEdit, onDelete }) => {
+  const { t } = useLanguage();
   const { isItemLocked, getLockInfo } = useWebSocket();
   const locked = isItemLocked(item.id, 'inventory');
   const lockInfo = getLockInfo(item.id, 'inventory');
@@ -463,7 +471,7 @@ const InventoryRow = ({ item, onEdit, onDelete }) => {
       <td className="item-name">
         {item.item_name}
         {locked && (
-          <span className="lock-indicator" title={`Being edited by ${lockInfo?.username}`}>
+          <span className="lock-indicator" title={t('inventory.beingEditedBy', { user: lockInfo?.username })}>
             <Lock size={14} />
           </span>
         )}
@@ -478,7 +486,7 @@ const InventoryRow = ({ item, onEdit, onDelete }) => {
           className="icon-btn edit"
           onClick={() => onEdit(item)}
           disabled={locked}
-          title={locked ? `Being edited by ${lockInfo?.username}` : 'Edit'}
+          title={locked ? t('inventory.beingEditedBy', { user: lockInfo?.username }) : t('common.edit')}
         >
           <Edit2 size={16} />
         </button>
@@ -486,7 +494,7 @@ const InventoryRow = ({ item, onEdit, onDelete }) => {
           className="icon-btn delete"
           onClick={() => onDelete(item.id, item.item_name)}
           disabled={locked}
-          title={locked ? `Being edited by ${lockInfo?.username}` : 'Delete'}
+          title={locked ? t('inventory.beingEditedBy', { user: lockInfo?.username }) : t('common.delete')}
         >
           <Trash2 size={16} />
         </button>
@@ -497,6 +505,7 @@ const InventoryRow = ({ item, onEdit, onDelete }) => {
 
 // Edit modal with lock management
 const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) => {
+  const { t } = useLanguage();
   const { acquireLock, releaseLock } = useEditLock('inventory');
   const [lockAcquired, setLockAcquired] = useState(false);
   const [lockError, setLockError] = useState(null);
@@ -537,7 +546,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Edit Item</h3>
+          <h3>{t('inventory.editItem')}</h3>
           <button className="close-btn" onClick={onClose}>
             <X size={24} />
           </button>
@@ -553,7 +562,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-field">
-              <label>Item Name *</label>
+              <label>{t('inventory.name')} *</label>
               <input
                 type="text"
                 name="item_name"
@@ -564,7 +573,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
               />
             </div>
             <div className="form-field">
-              <label>Category</label>
+              <label>{t('inventory.category')}</label>
               <input
                 type="text"
                 name="category"
@@ -576,7 +585,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
           </div>
           <div className="form-row">
             <div className="form-field">
-              <label>Quantity *</label>
+              <label>{t('inventory.quantity')} *</label>
               <input
                 type="number"
                 name="quantity"
@@ -587,7 +596,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
               />
             </div>
             <div className="form-field">
-              <label>Unit Price *</label>
+              <label>{t('inventory.unitPrice')} *</label>
               <input
                 type="number"
                 step="0.01"
@@ -601,7 +610,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
           </div>
           <div className="form-row">
             <div className="form-field">
-              <label>Supplier</label>
+              <label>{t('inventory.supplier')}</label>
               <input
                 type="text"
                 name="supplier"
@@ -611,7 +620,7 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
               />
             </div>
             <div className="form-field">
-              <label>Location</label>
+              <label>{t('inventory.location')}</label>
               <input
                 type="text"
                 name="location"
@@ -622,19 +631,19 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
             </div>
           </div>
           <div className="form-field">
-            <label>Section</label>
+            <label>{t('inventory.section')}</label>
             <select
               name="section"
               value={formData.section}
               onChange={onInputChange}
               disabled={!lockAcquired || lockError}
             >
-              <option value="Main Shop">Main Shop</option>
-              <option value="Tire Shop">Tire Shop</option>
+              <option value="Main Shop">{t('inventory.mainShop')}</option>
+              <option value="Tire Shop">{t('inventory.tireShop')}</option>
             </select>
           </div>
           <div className="form-field">
-            <label>Description</label>
+            <label>{t('inventory.description')}</label>
             <textarea
               name="description"
               value={formData.description}
@@ -645,14 +654,14 @@ const EditItemModal = ({ formData, onInputChange, onSubmit, onClose, itemId }) =
           </div>
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button 
               type="submit" 
               className="btn btn-primary"
               disabled={!lockAcquired || lockError}
             >
-              Update Item
+              {t('inventory.updateItem')}
             </button>
           </div>
         </form>

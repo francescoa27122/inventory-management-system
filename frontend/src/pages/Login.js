@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import './Login.css';
 
 const Login = () => {
@@ -9,6 +10,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,32 +31,32 @@ const Login = () => {
     <div className="login-container" style={{ backgroundImage: 'url(/shop-background.jpg)' }}>
       <div className="login-card">
         <div className="login-header">
-          <h1>Inventory Manager</h1>
-          <p>Family Business Portal</p>
+          <h1>{t('login.title')}</h1>
+          <p>{t('login.subtitle')}</p>
         </div>
         
         <div onSubmit={handleSubmit} className="login-form">
           {error && <div className="error-message">{error}</div>}
           
           <div className="form-group">
-            <label>Username</label>
+            <label>{t('login.username')}</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
+              placeholder={t('login.enterUsername')}
               required
               disabled={loading}
             />
           </div>
           
           <div className="form-group">
-            <label>Password</label>
+            <label>{t('login.password')}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder={t('login.enterPassword')}
               required
               disabled={loading}
             />
@@ -66,11 +68,11 @@ const Login = () => {
             disabled={loading}
             onClick={handleSubmit}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('login.signingin') : t('login.signin')}
           </button>
           
           <div className="login-hint">
-            <small>Default login: admin / admin123</small>
+            <small>{t('login.hint')}</small>
           </div>
         </div>
       </div>

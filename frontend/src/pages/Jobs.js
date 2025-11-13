@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Eye, Trash2, Package, Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Eye, Trash2, Package, Upload, FileText } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { jobsService, inventoryService } from '../services/api';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../hooks/useConfirm';
 import './Jobs.css';
 
 const Jobs = () => {
@@ -15,6 +17,7 @@ const Jobs = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [partSection, setPartSection] = useState('Main Shop'); // New state for section filter
   const [formData, setFormData] = useState({
     job_name: '',
     customer_name: '',
@@ -27,6 +30,9 @@ const Jobs = () => {
     quantity: 1,
     status: 'ordered'
   });
+
+  const { showSuccess, showError, showInfo } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchJobs();
@@ -73,13 +79,13 @@ const Jobs = () => {
     e.preventDefault();
     try {
       await jobsService.create(formData);
-      alert('Job created successfully!');
+      showSuccess('Job created successfully!');
       setShowCreateModal(false);
       resetForm();
       fetchJobs();
     } catch (error) {
       console.error('Error creating job:', error);
-      alert('Failed to create job');
+      showError('Failed to create job');
     }
   };
 
@@ -90,15 +96,16 @@ const Jobs = () => {
       setShowDetailsModal(true);
     } catch (error) {
       console.error('Error fetching job details:', error);
-      alert('Failed to load job details');
+      showError('Failed to load job details');
     }
   };
 
   const handleDeleteJob = async (jobId, jobName) => {
-    if (window.confirm(`Are you sure you want to delete "${jobName}"? This action cannot be undone.`)) {
+    const confirmed = await confirm(`Are you sure you want to delete "${jobName}"? This action cannot be undone.`);
+    if (confirmed) {
       try {
         await jobsService.delete(jobId);
-        alert('Job deleted successfully!');
+        showSuccess('Job deleted successfully!');
         fetchJobs();
         if (showDetailsModal && selectedJob?.id === jobId) {
           setShowDetailsModal(false);
@@ -106,7 +113,7 @@ const Jobs = () => {
         }
       } catch (error) {
         console.error('Error deleting job:', error);
-        alert('Failed to delete job');
+        showError('Failed to delete job');
       }
     }
   };
@@ -114,7 +121,7 @@ const Jobs = () => {
   const handleUpdateStatus = async (jobId, newStatus) => {
     try {
       await jobsService.update(jobId, { status: newStatus });
-      alert('Status updated successfully!');
+      showSuccess('Status updated successfully!');
       fetchJobs();
       if (selectedJob && selectedJob.id === jobId) {
         const response = await jobsService.getById(jobId);
@@ -122,11 +129,12 @@ const Jobs = () => {
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update status');
+      showError('Failed to update status');
     }
   };
 
   const handleAddParts = () => {
+    setPartSection('Main Shop'); // Reset to default when opening modal
     setShowAddPartsModal(true);
   };
 
@@ -138,7 +146,7 @@ const Jobs = () => {
         quantity_used: parseInt(partForm.quantity),
         status: partForm.status
       }]);
-      alert('Part added successfully!');
+      showSuccess('Part added successfully!');
       setShowAddPartsModal(false);
       setPartForm({ item_id: '', quantity: 1, status: 'ordered' });
       const response = await jobsService.getById(selectedJob.id);
@@ -146,21 +154,22 @@ const Jobs = () => {
       fetchJobs();
     } catch (error) {
       console.error('Error adding part:', error);
-      alert('Failed to add part to job');
+      showError('Failed to add part to job');
     }
   };
 
   const handleRemovePart = async (itemId) => {
-    if (window.confirm('Remove this part from the job?')) {
+    const confirmed = await confirm('Remove this part from the job?');
+    if (confirmed) {
       try {
         await jobsService.removeItem(selectedJob.id, itemId);
-        alert('Part removed successfully!');
+        showSuccess('Part removed successfully!');
         const response = await jobsService.getById(selectedJob.id);
         setSelectedJob(response.data.data);
         fetchJobs();
       } catch (error) {
         console.error('Error removing part:', error);
-        alert('Failed to remove part');
+        showError('Failed to remove part');
       }
     }
   };
@@ -172,13 +181,11 @@ const Jobs = () => {
   const handleFileUpload = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      alert('Please select a file');
+      showError('Please select a file');
       return;
     }
 
-    // In a real implementation, you'd upload to your backend
-    // For now, we'll simulate it
-    alert(`File "${selectedFile.name}" uploaded successfully! (Simulated - implement backend storage)`);
+    showInfo(`File "${selectedFile.name}" uploaded successfully! (Simulated - implement backend storage)`);
     setShowUploadModal(false);
     setSelectedFile(null);
   };
@@ -218,6 +225,9 @@ const Jobs = () => {
         return <span className="part-status-badge">{status}</span>;
     }
   };
+
+  // Filter items by selected section
+  const filteredItems = items.filter(item => item.section === partSection);
 
   const currentJobs = jobs.filter(job => job.status === 'active' || job.status === 'cancelled');
   const completedJobs = jobs.filter(job => job.status === 'completed');
@@ -450,7 +460,10 @@ const Jobs = () => {
                           <div className="part-details">
                             <div className="part-info">
                               <span className="part-name">{item.item_name}</span>
-                              <span className="part-category">{item.category}</span>
+                              <div className="part-meta">
+                                <span className="part-category">{item.category}</span>
+                                <span className="part-section-badge">{item.section}</span>
+                              </div>
                             </div>
                             {getPartStatusBadge(item.status || 'ordered')}
                           </div>
@@ -531,7 +544,7 @@ const Jobs = () => {
           </div>
         )}
 
-        {/* Add Parts Modal */}
+        {/* Add Parts Modal - WITH SECTION SELECTOR */}
         {showAddPartsModal && (
           <div className="modal-overlay" onClick={() => setShowAddPartsModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -542,8 +555,35 @@ const Jobs = () => {
                 </button>
               </div>
               <form className="modal-form" onSubmit={handleAddPartToJob}>
+                {/* Section Selector */}
                 <div className="form-field">
-                  <label>Select Part *</label>
+                  <label>Select Inventory Section *</label>
+                  <div className="section-selector">
+                    <button
+                      type="button"
+                      className={`section-btn ${partSection === 'Main Shop' ? 'active' : ''}`}
+                      onClick={() => {
+                        setPartSection('Main Shop');
+                        setPartForm(prev => ({ ...prev, item_id: '' })); // Reset selection
+                      }}
+                    >
+                      Body Shop Parts
+                    </button>
+                    <button
+                      type="button"
+                      className={`section-btn ${partSection === 'Tire Shop' ? 'active' : ''}`}
+                      onClick={() => {
+                        setPartSection('Tire Shop');
+                        setPartForm(prev => ({ ...prev, item_id: '' })); // Reset selection
+                      }}
+                    >
+                      Tire Shop Parts
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-field">
+                  <label>Select Part from {partSection} *</label>
                   <select
                     name="item_id"
                     value={partForm.item_id}
@@ -551,12 +591,19 @@ const Jobs = () => {
                     required
                   >
                     <option value="">Choose a part...</option>
-                    {items.map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.item_name} - ${item.unit_price.toFixed(2)} ({item.quantity} in stock)
-                      </option>
-                    ))}
+                    {filteredItems.length === 0 ? (
+                      <option value="" disabled>No parts available in {partSection}</option>
+                    ) : (
+                      filteredItems.map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.item_name} - ${item.unit_price.toFixed(2)} ({item.quantity} in stock)
+                        </option>
+                      ))
+                    )}
                   </select>
+                  <p className="help-text">
+                    Showing {filteredItems.length} part{filteredItems.length !== 1 ? 's' : ''} from {partSection}
+                  </p>
                 </div>
                 <div className="form-row">
                   <div className="form-field">
